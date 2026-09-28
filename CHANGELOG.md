@@ -13,7 +13,7 @@
 
 ### Changed
 - `SKILL.md` explains how to work in claude.ai chat, where `${CLAUDE_SKILL_DIR}` isn't substituted and there's no project checkout: use uploaded files and run scripts by their path relative to the skill.
-- Lingo.dev CLI examples pin an exact version instead of `@latest`.
+- Lingo.dev CLI examples pin an exact version instead of always taking the newest release.
 
 ## 1.0.0 — 2026-09-28
 
