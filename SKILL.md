@@ -70,20 +70,27 @@ No translation keys needed. Strings detected automatically from JSX.
 
 ### Next.js (App Router)
 
+```bash
+npm install @lingo.dev/compiler
+```
+
 ```typescript
 // next.config.ts
 import type { NextConfig } from "next";
-import lingoCompiler from "lingo.dev/compiler";
+import { withLingo } from "@lingo.dev/compiler/next";
 
 const nextConfig: NextConfig = {};
 
-export default lingoCompiler.next({
-  sourceRoot: "app",
-  sourceLocale: "en",
-  targetLocales: ["es", "fr", "de", "ru", "zh", "ja"],
-  rsc: true,
-  models: "lingo.dev",
-})(nextConfig);
+export default async function (): Promise<NextConfig> {
+  return await withLingo(nextConfig, {
+    sourceRoot: "./app",
+    sourceLocale: "en",
+    targetLocales: ["es", "fr", "de", "ru", "zh", "ja"],
+    models: "lingo.dev",
+    dev: { usePseudotranslator: true },  // fake translations in dev, no API calls
+    buildMode: "cache-only",             // production build uses pre-generated translations only
+  });
+}
 ```
 
 ### LingoProvider (Required)
@@ -109,19 +116,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 // vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import lingoCompiler from "lingo.dev/compiler";
+import { lingoCompilerPlugin } from "@lingo.dev/compiler/vite";
 
-export default defineConfig(() =>
-  lingoCompiler.vite({
-    sourceRoot: "src",
-    sourceLocale: "en",
-    targetLocales: ["es", "fr", "de"],
-    models: "lingo.dev",
-  })({}),
-);
+export default defineConfig({
+  plugins: [
+    lingoCompilerPlugin({
+      sourceRoot: "src",
+      sourceLocale: "en",
+      targetLocales: ["es", "fr", "de"],
+      models: "lingo.dev",
+      dev: { usePseudotranslator: true },
+    }),
+    react(),
+  ],
+});
 ```
 
-**Critical:** Lingo compiler plugin BEFORE `react()` plugin.
+**Critical:** Lingo compiler plugin BEFORE `react()` plugin. Wrap the app in `LingoProvider` (from `@lingo.dev/compiler/react`) as high as possible — with TanStack Router it must sit above `RouterProvider`, or code-splitting breaks the context.
+
+**Build modes:** `buildMode: "translate"` (default) calls the configured model for missing strings and fails the build if translation fails. `"cache-only"` makes no API calls and fails if translations are missing — generate them in dev or CI first. Override per run with `LINGO_BUILD_MODE=cache-only npm run build`.
 
 ### What Gets Translated
 
@@ -282,16 +295,23 @@ export default async function LocaleLayout({
 **6. Using translations:**
 
 ```typescript
-// Server Component
-import { useTranslations } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+// Async Server Component — hooks are not allowed here, use the awaitable API
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = useTranslations('HomePage');
+  const t = await getTranslations('HomePage');
 
   return <h1>{t('title')}</h1>;
+}
+
+// Non-async Server Component — the hook works
+import { useTranslations } from 'next-intl';
+
+export function Hero() {
+  const t = useTranslations('HomePage');
+  return <p>{t('description', { purpose: 'teams' })}</p>;
 }
 
 // Client Component
@@ -499,7 +519,17 @@ export default i18n;
 
 - Bundle translations directly (no HTTP backend on mobile)
 - Use device locale for initial language: `RNLocalize.getLocales()[0]`
-- Listen for locale changes: `RNLocalize.addEventListener('change', handleLocaleChange)`
+- Re-check the device locale when the app returns to the foreground. `react-native-localize` v3 removed `addEventListener`; its calls are now synchronous and always current, so use `AppState`:
+  ```typescript
+  import { AppState } from 'react-native';
+
+  AppState.addEventListener('change', (state) => {
+    if (state !== 'active') return;
+    // Skip this if the user picked a language in-app (stored override wins)
+    const deviceLocale = RNLocalize.getLocales()[0].languageCode;
+    if (deviceLocale !== i18n.language) i18n.changeLanguage(deviceLocale);
+  });
+  ```
 - Store language preference in `AsyncStorage` for user override
 - For RTL: `I18nManager.forceRTL(isRTL)` — requires app restart
 - Date/number formatting: use `Intl` polyfill if needed (`intl-pluralrules`)
@@ -838,53 +868,114 @@ ForEach(frequencies, id: \.self) { freq in
 
 For large apps, manual checking is impractical. Use scripts to find untranslated strings.
 
-#### Audit Script: Find all `String(localized:)` without catalog entries
+#### Audit Script: Find `String(localized:)` keys missing from catalogs
+
+Compares every `String(localized:)` key in Swift code against all `.xcstrings` files, then lists keys with no translation or still awaiting review. Handles `comment:`/`table:` arguments, escaped quotes, and nested interpolations; skips `shouldTranslate: false` and stale entries.
 
 ```python
 #!/usr/bin/env python3
-"""Audit String(localized:) calls against xcstrings catalog."""
-import json, re, os
+"""Audit String(localized:) calls against the project's String Catalogs."""
+import json, os, re
 
-CATALOG = "Resources/Localizable.xcstrings"
 SWIFT_ROOT = "."
 TARGET_LOCALE = "ru"  # Change to your target
+SKIP_DIRS = {".git", ".build", "build", "DerivedData", "Pods", "Carthage"}
 
-with open(CATALOG) as f:
-    catalog = json.load(f)
-catalog_keys = set(catalog["strings"].keys())
+# Xcode turns each interpolation into a typed specifier: String → %@, Int → %lld,
+# Double → %lf (untyped extraction writes %arg). Code alone can't tell the type,
+# so collapse every specifier to %@ on both sides before comparing.
+SPECIFIER = re.compile(r"%(?:\d+\$)?(?:arg|[-+ #0]*\d*(?:\.\d+)?(?:hh|h|ll|l|q|z|t|j|L)?[@dDiuUxXoOfFeEgGcCsSaA])")
+CALL = re.compile(r'String\(\s*localized:\s*"(?!"")')  # skips """multi-line""" literals
+ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "0": "\0", '"': '"', "'": "'", "\\": "\\"}
 
-pattern = re.compile(r'String\(localized:\s*"([^"]+)"\)')
+def normalize(key):
+    return SPECIFIER.sub("%@", key)
 
-def swift_unescape(s):
-    return re.sub(r'\\u\{([0-9a-fA-F]+)\}', lambda m: chr(int(m.group(1), 16)), s)
+def read_literal(src, i):
+    """Read a Swift string literal starting just after its opening quote.
+    Returns the catalog-style key (interpolations → %@) or None."""
+    out = []
+    while i < len(src):
+        c = src[i]
+        if c == '"':
+            return "".join(out)
+        if c == "\n":
+            return None
+        if c == "\\":
+            nxt = src[i + 1]
+            if nxt == "(":  # interpolation — skip balanced parentheses
+                depth, i = 1, i + 2
+                while i < len(src) and depth:
+                    depth += {"(": 1, ")": -1}.get(src[i], 0)
+                    i += 1
+                out.append("%@")
+                continue
+            if nxt == "u" and src[i + 2] == "{":
+                end = src.index("}", i)
+                out.append(chr(int(src[i + 3:end], 16)))
+                i = end + 1
+                continue
+            out.append(ESCAPES.get(nxt, nxt))
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return None
+
+def states(node):
+    """All stringUnit states under a localization (covers plural/device variations)."""
+    if isinstance(node, dict):
+        if "state" in node:
+            yield node["state"]
+        for v in node.values():
+            yield from states(v)
+
+swift_files, catalogs = [], {}
+for dirpath, dirnames, filenames in os.walk(SWIFT_ROOT):
+    dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+    for name in filenames:
+        path = os.path.join(dirpath, name)
+        if name.endswith(".swift"):
+            swift_files.append(path)
+        elif name.endswith(".xcstrings"):
+            with open(path, encoding="utf-8") as f:
+                catalogs[path] = json.load(f)
+
+# Keys can live in any table (String(localized:table:)), so check against all catalogs.
+known = {normalize(k) for c in catalogs.values() for k in c["strings"]}
 
 missing = []
-for dirpath, _, filenames in os.walk(SWIFT_ROOT):
-    for fname in filenames:
-        if not fname.endswith(".swift"): continue
-        fpath = os.path.join(dirpath, fname)
-        with open(fpath) as f:
-            content = f.read()
-        for m in pattern.finditer(content):
-            key = swift_unescape(m.group(1))
-            catalog_key = re.sub(r'\\[({][^)}]+[)}]', '%@', key)
-            if catalog_key not in catalog_keys:
-                lineno = content[:m.start()].count('\n') + 1
-                missing.append((fname, lineno, catalog_key))
+for path in swift_files:
+    with open(path, encoding="utf-8") as f:
+        src = f.read()
+    for m in CALL.finditer(src):
+        key = read_literal(src, m.end())
+        if key is not None and normalize(key) not in known:
+            missing.append((path, src[:m.start()].count("\n") + 1, key))
 
-# Also check for missing target locale translations
-no_translation = []
-for key, entry in catalog["strings"].items():
-    locs = entry.get("localizations", {})
-    if TARGET_LOCALE not in locs:
-        no_translation.append(key)
+untranslated, needs_review = [], []
+for path, catalog in catalogs.items():
+    if catalog.get("sourceLanguage") == TARGET_LOCALE:
+        continue
+    for key, entry in catalog["strings"].items():
+        if entry.get("shouldTranslate") is False or entry.get("extractionState") == "stale":
+            continue
+        found = set(states(entry.get("localizations", {}).get(TARGET_LOCALE, {})))
+        if not found or "new" in found:
+            untranslated.append((path, key))
+        elif "needs_review" in found:
+            needs_review.append((path, key))
 
-print(f"String(localized:) calls missing from catalog: {len(missing)}")
-for f, l, k in missing:
-    print(f"  {f}:{l} — \"{k}\"")
-print(f"\nCatalog keys missing {TARGET_LOCALE} translation: {len(no_translation)}")
-for k in no_translation[:20]:
-    print(f"  \"{k}\"")
+print(f"String(localized:) keys missing from every catalog: {len(missing)}")
+print("  (usually fixed by building in Xcode so the key gets extracted)")
+for path, line, key in missing:
+    print(f"  {path}:{line} — {key!r}")
+print(f"\nKeys with no {TARGET_LOCALE} translation: {len(untranslated)}")
+for path, key in untranslated[:50]:
+    print(f"  {os.path.basename(path)}: {key!r}")
+print(f"\n{TARGET_LOCALE} translations still marked needs_review: {len(needs_review)}")
+for path, key in needs_review[:50]:
+    print(f"  {os.path.basename(path)}: {key!r}")
 ```
 
 #### Audit Script: Find `String` params in helper functions
@@ -897,16 +988,16 @@ grep -rn 'Text(\w\+)' --include="*.swift" Views/  # Text(variable) — likely un
 
 #### Bulk-Add Translations to xcstrings via Python
 
+Writes Claude's translations as `needs_review` so they stay flagged in Xcode until a person approves them. Never overwrites a `translated` (reviewed) entry, skips plural keys (edit those per category in Xcode), and reports keys that aren't in the catalog yet instead of inventing them.
+
 ```python
 #!/usr/bin/env python3
-"""Add translations to xcstrings catalog programmatically."""
-import json
+"""Add AI-drafted translations to an xcstrings catalog, marked for human review."""
+import json, re
 
 CATALOG = "Resources/Localizable.xcstrings"
-
-with open(CATALOG) as f:
-    catalog = json.load(f)
-strings = catalog["strings"]
+LOCALE = "ru"
+OVERWRITE_REVIEWED = False  # True replaces translations a person already approved
 
 translations = {
     "Coming Up": "Ближайшие",
@@ -914,18 +1005,41 @@ translations = {
     # ... add more entries
 }
 
-for key, ru in translations.items():
-    if key not in strings:
-        strings[key] = {"localizations": {}}
-    if "localizations" not in strings[key]:
-        strings[key]["localizations"] = {}
-    strings[key]["localizations"]["ru"] = {
-        "stringUnit": {"state": "translated", "value": ru}
-    }
+with open(CATALOG, encoding="utf-8") as f:
+    raw = f.read()
+catalog = json.loads(raw)
+strings = catalog["strings"]
 
-with open(CATALOG, "w") as f:
-    json.dump(catalog, f, indent=2, ensure_ascii=False)
-print(f"Updated. Total keys: {len(strings)}")
+added, kept, not_extracted, plural = [], [], [], []
+for key, value in translations.items():
+    entry = strings.get(key)
+    if entry is None:
+        not_extracted.append(key)  # build in Xcode first so the key is extracted
+        continue
+    locs = entry.setdefault("localizations", {})
+    if any("variations" in loc for loc in locs.values()):
+        plural.append(key)  # needs one value per plural category — edit in Xcode
+        continue
+    state = locs.get(LOCALE, {}).get("stringUnit", {}).get("state")
+    if state == "translated" and not OVERWRITE_REVIEWED:
+        kept.append(key)
+        continue
+    # AI output is a draft: needs_review keeps it visible in Xcode until someone approves it
+    locs[LOCALE] = {"stringUnit": {"state": "needs_review", "value": value}}
+    entry["localizations"] = dict(sorted(locs.items()))  # Xcode keeps locales sorted
+    added.append(key)
+
+# Match Xcode's own formatting (2-space indent, " : ", empty objects split over
+# lines) so diffs show only real changes
+text = json.dumps(catalog, indent=2, ensure_ascii=False, separators=(",", " : "))
+text = re.sub(r"^( *)(.*)\{\}(,?)$", lambda m: f"{m[1]}{m[2]}{{\n\n{m[1]}}}{m[3]}", text, flags=re.M)
+with open(CATALOG, "w", encoding="utf-8") as f:
+    f.write(text + ("\n" if raw.endswith("\n") else ""))
+
+print(f"Added as needs_review: {added}")
+print(f"Kept existing reviewed translations: {kept}")
+print(f"Not in catalog yet (build first): {not_extracted}")
+print(f"Plural keys to edit in Xcode: {plural}")
 ```
 
 ### AI-Generated Content Localization
@@ -1021,45 +1135,77 @@ When user already has `en.json` and needs other languages:
 ```bash
 npx lingo.dev@latest init      # Create config
 npx lingo.dev@latest run       # Translate all
-npx lingo.dev@latest run --locale es  # Spanish only
+npx lingo.dev@latest run --target-locale es  # Spanish only
+npx lingo.dev@latest run --frozen    # CI: fail if translations are out of date
 ```
+
+Commit `i18n.lock`. It stores a checksum of every source string, which is how `run` knows which strings changed and need retranslating.
 
 ---
 
 ## SEO & Multilingual Metadata
 
-### hreflang Tags
+### hreflang Tags and Canonical URLs
+
+Canonical and hreflang URLs are **per page**, so build them in each page's `generateMetadata` — never in the layout. A page that doesn't set its own `alternates` inherits the layout's, so every such page would declare the layout URL (usually the home page) as its canonical and drop out of search results.
+
+Use next-intl's `getPathname` so the URLs follow your `localePrefix` and localized `pathnames` settings:
 
 ```typescript
-// Next.js: app/[locale]/layout.tsx
-import { routing } from '@/i18n/routing';
+// src/i18n/metadata.ts — canonical + hreflang for one page
+import type { Metadata } from 'next';
+import { routing, getPathname } from './routing';
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Metadata' });
+const host = 'https://example.com';
 
-  const languages: Record<string, string> = {};
-  for (const loc of routing.locales) {
-    languages[loc] = `https://example.com/${loc === 'en' ? '' : loc}`;
-  }
-  languages['x-default'] = 'https://example.com';
+type Href = Parameters<typeof getPathname>[0]['href'];
 
+export function getAlternates(locale: string, href: Href): Metadata['alternates'] {
+  const url = (l: string) => host + getPathname({ locale: l, href });
   return {
-    title: t('title'),
-    description: t('description'),
-    alternates: {
-      canonical: `https://example.com/${locale === 'en' ? '' : locale}`,
-      languages,
-    },
-    openGraph: {
-      title: t('title'),
-      description: t('description'),
-      locale: locale,
-      alternateLocale: routing.locales.filter(l => l !== locale),
+    canonical: url(locale),
+    languages: {
+      ...Object.fromEntries(routing.locales.map((l) => [l, url(l)])),
+      'x-default': url(routing.defaultLocale),
     },
   };
 }
 ```
+
+```typescript
+// src/app/[locale]/about/page.tsx
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
+import { routing } from '@/i18n/routing';
+import { getAlternates } from '@/i18n/metadata';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'AboutPage' });
+
+  return {
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+    alternates: getAlternates(locale, '/about'),
+    openGraph: {
+      title: t('metaTitle'),
+      description: t('metaDescription'),
+      locale,
+      alternateLocale: routing.locales.filter((l) => l !== locale),
+    },
+  };
+}
+
+// Dynamic routes: pass the concrete path, e.g. getAlternates(locale, `/blog/${slug}`).
+// With localized `pathnames`, pass the internal route instead:
+// getAlternates(locale, { pathname: '/blog/[slug]', params: { slug } })
+```
+
+next-intl's middleware also sends the alternates as a `Link` response header by default (`alternateLinks` in `defineRouting`).
 
 ### Manual hreflang (HTML head)
 
@@ -1111,8 +1257,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 import { ImageResponse } from 'next/og';
 import { getTranslations } from 'next-intl/server';
 
-export default async function OGImage({ params }: { params: { locale: string } }) {
-  const t = await getTranslations({ locale: params.locale, namespace: 'OG' });
+export default async function OGImage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;  // params is a Promise since Next.js 16
+  const t = await getTranslations({ locale, namespace: 'OG' });
 
   return new ImageResponse(
     <div style={{ fontSize: 48, color: 'white', background: '#000' }}>
@@ -1667,13 +1814,24 @@ Never translate variable names inside `{curly braces}`. Keep them identical.
 
 ### 3. Handle Pluralization (ICU MessageFormat)
 
-| Language | Forms | Categories |
-|---|---|---|
-| English, Spanish, French, German, Italian, Portuguese | 2 | one, other |
-| Russian, Ukrainian, Polish, Czech, Croatian | 3-4 | one, few, many, other |
-| Arabic | 6 | zero, one, two, few, many, other |
-| Chinese, Japanese, Korean, Vietnamese, Thai | 1 | other (no plural) |
-| Romanian | 3 | one, few, other |
+Don't rely on memory for plural forms. Ask the runtime, because CLDR changes between releases (for example, French, Spanish, Italian and Portuguese recently gained `many`):
+
+```bash
+node -e 'console.log(new Intl.PluralRules("ru").resolvedOptions().pluralCategories)'
+# → [ 'few', 'many', 'one', 'other' ]
+```
+
+Every translated plural message must cover every category its locale reports; `other` is always required. Reference (CLDR 48):
+
+| Categories | Languages |
+|---|---|
+| other | Chinese, Japanese, Korean, Vietnamese, Thai, Indonesian |
+| one, other | English, German, Dutch, Turkish |
+| one, many, other | Spanish, French, Italian, Portuguese (`many` covers large round numbers like 1 000 000, which take "de"/"di") |
+| one, few, other | Romanian, Croatian, Serbian |
+| one, two, other | Hebrew |
+| one, few, many, other | Russian, Ukrainian, Polish, Czech |
+| zero, one, two, few, many, other | Arabic |
 
 ### 4. Gender and Formality
 - **German:** Formal "Sie" for UI (not "du")
@@ -1697,7 +1855,7 @@ Never translate variable names inside `{curly braces}`. Keep them identical.
 ### 7. Cultural Adaptation
 - Date: US (MM/DD/YYYY) vs EU (DD/MM/YYYY) vs ISO (YYYY-MM-DD)
 - Numbers: 1,000.50 (en) vs 1.000,50 (de) vs 1 000,50 (fr)
-- Currency: $100 (en) vs 100 € (fr) vs 100$ (pt-BR)
+- Currency: `$100.00` (en-US) vs `100,00 €` (fr-FR) vs `R$ 100,00` (pt-BR; US dollars are `US$ 100,00`). Never hand-write symbols or their position — use `Intl.NumberFormat(locale, { style: 'currency', currency })`
 
 ### 8. Consistency
 - Same English term = same target translation throughout
@@ -1829,6 +1987,7 @@ jobs:
 | Problem | Fix |
 |---|---|
 | "Couldn't find config" | Ensure path in `createNextIntlPlugin()` is correct |
+| Hook error in an `async` component | Use `await getTranslations()` from `next-intl/server`; `useTranslations` only works in non-async components |
 | Dynamic rendering forced | Add `setRequestLocale(locale)` to all layouts/pages |
 | Middleware not running | Check `matcher` config in proxy.ts |
 | Client components missing translations | Wrap in `NextIntlClientProvider` with `messages` |
@@ -1840,7 +1999,7 @@ jobs:
 | Broken variables | Ensure `{variableName}` stays identical |
 | Missing plural forms | Add correct plural categories per language |
 | Encoding issues | Ensure files are UTF-8 |
-| Stale translations | Delete `i18n.lock` and re-run |
+| Stale translations after source edits | Run `npx lingo.dev@latest run`: it compares source strings with the checksums in `i18n.lock` and retranslates only what changed. Regenerate specific keys with `run --key <path>`, or everything with `run --force` (overwrites manual edits). **Don't delete `i18n.lock`**: a fresh lockfile records the current source as already translated, so earlier edits are never picked up |
 
 ### Apple / Xcode Issues
 
@@ -1867,7 +2026,7 @@ npm install react-i18next i18next i18next-browser-languagedetector
 npm install i18next react-i18next react-native-localize
 
 # Lingo.dev Compiler
-npm install lingo.dev @lingo.dev/compiler
+npm install @lingo.dev/compiler
 
 # Lingo.dev CLI
 npx lingo.dev@latest init
