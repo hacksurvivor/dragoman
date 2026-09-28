@@ -4,7 +4,7 @@
     "name": "hacksurvivor",
     "url": "https://github.com/hacksurvivor"
   },
-  "description": "Dragoman localization plugin for Claude Code",
+  "description": "Dragoman: localization plugin for Claude",
   "plugins": [
     {
       "name": "dragoman",

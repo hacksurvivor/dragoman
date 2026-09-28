@@ -1,6 +1,6 @@
 # Dragoman
 
-**Localization for Claude Code that checks its own work.**
+**Localization for Claude that checks its own work.**
 
 A dragoman was the interpreter and guide at the Ottoman court: the person who made sure what was said in one language arrived intact in another. This plugin does that job for apps. It sets up i18n, moves hardcoded strings into message files, translates them, and then verifies every translation mechanically instead of trusting the model.
 
@@ -14,7 +14,11 @@ check_locales.py "messages/[locale].json"
 
 ## Install
 
-In Claude Code:
+Dragoman is a Claude plugin. It works in chat on claude.ai, the desktop and mobile apps, Cowork, and Claude Code, and a plugin you add to your account follows you to all of them.
+
+**claude.ai, desktop and mobile apps, Cowork:** open **Customize → Plugins**, choose **Add → Add marketplace**, enter `hacksurvivor/dragoman`, select **Sync**, then **Add** next to Dragoman.
+
+**Claude Code:**
 
 ```
 /plugin marketplace add hacksurvivor/dragoman
@@ -23,14 +27,12 @@ In Claude Code:
 
 Or from a terminal: `claude plugin marketplace add hacksurvivor/dragoman`, then `claude plugin install dragoman@dragoman`.
 
-Without the plugin system, copy the skill folder into your skills directory:
-
-```bash
-git clone https://github.com/hacksurvivor/dragoman.git
-cp -R dragoman/skills/dragoman ~/.claude/skills/
-```
-
 Then ask Claude to localize your app: *"Add German and Japanese"*, *"I changed the English copy, update the translations"*, *"Why is this SwiftUI screen still in English?"*
+
+### Where it works best
+
+- **Claude Code and Cowork** work directly in your project: Dragoman can set up i18n, edit source files, and run its checks on the real files.
+- **Chat** works on the locale files you upload or paste. Claude translates them, runs the same checks in its code-execution sandbox, and gives you the finished files to download. Setup steps that need your codebase are described rather than applied.
 
 ## How it works
 
@@ -68,9 +70,9 @@ Python 3.9+ standard library only (YAML needs PyYAML). They're in `skills/dragom
 
 `<pattern>` names your locale files: `messages/[locale].json`, `public/locales/[locale]/*.json`, `lib/l10n/app_[locale].arb`.
 
-## What it does on your machine
+## What it runs and sends
 
-- Runs the Python scripts above with your permission. They read your locale files and write only `.dragoman/` and the files you're translating.
+- Runs the Python scripts above: in Claude Code with your permission, in chat inside Claude's code-execution sandbox. They read your locale files and write only `.dragoman/` and the files you're translating.
 - Translations are written by Claude in your session. Nothing is sent anywhere else unless you choose the optional Lingo.dev compiler or CLI, which send source strings to Lingo.dev or the model provider you configure.
 - May suggest installing i18n libraries (`next-intl`, `react-i18next`, …) for projects that have none.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 — 2026-09-28
+
+### Changed
+- README and marketplace description present Dragoman as a plugin for Claude everywhere — chat, desktop and mobile apps, Cowork and Claude Code — with install steps for claude.ai and what works best where.
+
 ## 1.0.1 — 2026-09-28
 
 ### Changed
