@@ -1,0 +1,8 @@
+{
+  "welcome": "Welcome, {{name}}!",
+  "item_one": "One item",
+  "item_other": "{{count}} items",
+  "agree": "Click <1>here</1> to accept.<br/>Thanks!",
+  "nested": "Saved. $t(common.undo)",
+  "undo": "Undo"
+}

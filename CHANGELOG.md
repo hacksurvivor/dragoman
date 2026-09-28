@@ -1,0 +1,32 @@
+# Changelog
+
+## 1.0.0 — 2026-09-28
+
+First release as **dragoman** (previously `i18n-localizer`).
+
+### Added
+- Claude Code plugin and marketplace manifests: install with `/plugin marketplace add hacksurvivor/dragoman`.
+- `check_locales.py`: validates translations against the source — missing/empty keys, placeholder and tag parity, ICU syntax, CLDR plural forms per language (128 languages), select branches, orphan keys, untranslated copies, style-file terms. ICU and i18next syntax; JSON, ARB and YAML.
+- `translation_state.py`: incremental translation (`todo`), draft/reviewed tracking (`mark`, `approve`) and a guard that fails when a reviewed translation is edited (`status`).
+- `xcstrings_audit.py` and `xcstrings_add.py` as command-line tools.
+- `.dragoman/style.json`: formality, regional variants, do-not-translate terms and glossary, asked once and reused.
+- Unit tests with fixtures, GitHub Actions CI (Python 3.9 and 3.13, plugin validation), and an eval suite (`claude plugin eval`).
+
+### Changed
+- `SKILL.md` cut from ~2,000 lines to a ~130-line workflow; details moved to `references/`, loaded only when needed.
+- Default strategy is next-intl (Next.js) or react-i18next (React); Lingo.dev is opt-in because it sends strings to a model provider.
+- Formality is asked per project instead of hardcoded ("German always Sie").
+- Apple guidance uses `LocalizedStringResource`, explains what Xcode does and doesn't extract, and covers generated String Catalog symbols.
+- Lingo.dev GitHub Action examples are pinned to commit SHAs.
+- README describes only what's actually supported and what the plugin does on your machine.
+
+### Fixed
+- Lingo.dev compiler setup used an import that no longer exists; now `withLingo` / `lingoCompilerPlugin`.
+- next-intl: `useTranslations` in async Server Components (fails the build) → `getTranslations`.
+- hreflang/canonical built in the layout pointed every page's canonical at the home page; now built per page with `getPathname`.
+- OG image `params` is a Promise (Next.js 16).
+- react-native-localize v3 removed `addEventListener`; use `AppState`.
+- Plural table was outdated; now CLDR 48, read from `Intl.PluralRules`.
+- pt-BR currency format; `lingo.dev run --target-locale`; misleading `i18n.lock` advice.
+- xcstrings audit missed `comment:` calls and escaped quotes and misreported typed placeholders; bulk-add marked AI output as reviewed and reformatted the whole file.
+- Removed leftovers from another project (app names and domain examples) and an email example that concatenated translated strings.

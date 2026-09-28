@@ -1,0 +1,5 @@
+{
+  "sourceLocale": "en",
+  "doNotTranslate": ["Acme"],
+  "glossary": { "de": { "Settings": "Einstellungen" } }
+}

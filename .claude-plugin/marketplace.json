@@ -1,0 +1,16 @@
+{
+  "name": "dragoman",
+  "owner": {
+    "name": "hacksurvivor",
+    "url": "https://github.com/hacksurvivor"
+  },
+  "description": "Dragoman localization plugin for Claude Code",
+  "plugins": [
+    {
+      "name": "dragoman",
+      "source": "./",
+      "description": "Localize web, React Native and Apple apps: i18n setup, string extraction, translation, and bundled checks for missing keys, broken placeholders and wrong plural forms.",
+      "category": "development"
+    }
+  ]
+}
