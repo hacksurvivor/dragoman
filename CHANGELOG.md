@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-09-28
+
+### Changed
+- `SKILL.md` explains how to work in claude.ai chat, where `${CLAUDE_SKILL_DIR}` isn't substituted and there's no project checkout: use uploaded files and run scripts by their path relative to the skill.
+- Lingo.dev CLI examples pin an exact version instead of `@latest`.
+
 ## 1.0.0 — 2026-09-28
 
 First release as **dragoman** (previously `i18n-localizer`).

@@ -149,4 +149,4 @@ Glossary checks are case-insensitive substring matches, so inflected forms (Russ
 | Broken variables or tags | `check_locales.py` names the key and placeholder; restore the source name |
 | Missing plural forms | Add the categories `check_locales.py` lists for that language |
 | Encoding issues | Save files as UTF-8 |
-| Stale translations after source edits | Run `npx lingo.dev@latest run`: it compares source strings with the checksums in `i18n.lock` and retranslates only what changed. Regenerate specific keys with `run --key <path>`, or everything with `run --force` (overwrites manual edits). **Don't delete `i18n.lock`**: a fresh lockfile records the current source as already translated, so earlier edits are never picked up |
+| Stale translations after source edits | Run `npx lingo.dev@0.138.8 run`: it compares source strings with the checksums in `i18n.lock` and retranslates only what changed. Regenerate specific keys with `run --key <path>`, or everything with `run --force` (overwrites manual edits). **Don't delete `i18n.lock`**: a fresh lockfile records the current source as already translated, so earlier edits are never picked up |
