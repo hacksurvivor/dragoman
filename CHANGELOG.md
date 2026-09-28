@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 — 2026-09-28
+
+### Added
+- `PRIVACY.md`, and documentation, support and privacy links in `plugin.json` for the directory listing.
+
 ## 1.0.2 — 2026-09-28
 
 ### Added

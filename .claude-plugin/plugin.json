@@ -1,7 +1,7 @@
 {
   "name": "dragoman",
   "displayName": "Dragoman",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Localize web, React Native and Apple apps: i18n setup, string extraction, translation, and bundled checks for missing keys, broken placeholders and wrong plural forms.",
   "author": {
     "name": "hacksurvivor",
@@ -10,5 +10,18 @@
   "homepage": "https://github.com/hacksurvivor/dragoman",
   "repository": "https://github.com/hacksurvivor/dragoman",
   "license": "MIT",
-  "keywords": ["i18n", "l10n", "localization", "translation", "next-intl", "react-i18next", "react-native", "swiftui", "xcstrings"]
+  "keywords": [
+    "i18n",
+    "l10n",
+    "localization",
+    "translation",
+    "next-intl",
+    "react-i18next",
+    "react-native",
+    "swiftui",
+    "xcstrings"
+  ],
+  "documentationUrl": "https://github.com/hacksurvivor/dragoman#readme",
+  "supportUrl": "https://github.com/hacksurvivor/dragoman/issues",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/dragoman/blob/main/PRIVACY.md"
 }
