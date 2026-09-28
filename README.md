@@ -84,6 +84,8 @@ claude plugin validate . --strict            # manifests
 claude plugin validate skills --strict       # skill
 ```
 
+The icon is generated: `node tools/generate-icon.mjs` rewrites `.claude-plugin/icon.svg`.
+
 The `evals/` suite runs real Claude sessions against small fixture projects (translate ICU messages, update without touching reviewed strings, fix a SwiftUI `String` parameter, ask about formality first). It costs money; each run prints a list-price estimate:
 
 ```bash
