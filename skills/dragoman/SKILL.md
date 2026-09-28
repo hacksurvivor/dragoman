@@ -7,6 +7,11 @@ description: Internationalizes and localizes apps end to end — sets up i18n (n
 
 Localizes apps the way a careful human team would: decide tone and terms once, translate only what changed, check every file mechanically, and leave the user a clear list of what still needs human review.
 
+## Where you're running
+
+- **Claude Code or Cowork:** work in the user's project. Run the scripts as written below; `${CLAUDE_SKILL_DIR}` points at this skill's folder.
+- **Chat on claude.ai, desktop or mobile:** there's no project checkout. Work on the locale files the user uploads or pastes, and give back complete translated files for them to download. The skill folder is copied into the code-execution sandbox, so run the scripts by their path relative to this file, e.g. `python3 scripts/check_locales.py "messages/[locale].json"` from the skill folder with the files copied next to it. Skip setup steps that need the user's codebase and say so.
+
 ## Workflow
 
 Copy this checklist and work through it:

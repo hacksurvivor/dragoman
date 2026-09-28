@@ -1,7 +1,7 @@
 {
   "name": "dragoman",
   "displayName": "Dragoman",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Localize web, React Native and Apple apps: i18n setup, string extraction, translation, and bundled checks for missing keys, broken placeholders and wrong plural forms.",
   "author": {
     "name": "hacksurvivor",

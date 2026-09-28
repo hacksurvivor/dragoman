@@ -138,13 +138,15 @@ Translates locale files in place. Works with more formats than dragoman's checke
 **Bucket types:** `json`, `yaml`, `yaml-root-key`, `csv`, `po`, `markdown`, `mdx`, `android`, `xcode-xcstrings`, `properties`, `xliff`, `html`, `txt`, `php`, `flutter-arb`, `vue-json`, `typescript`
 
 ```bash
-npx lingo.dev@latest init                    # create i18n.json
-npx lingo.dev@latest run                     # translate new and changed strings
-npx lingo.dev@latest run --target-locale es  # Spanish only
-npx lingo.dev@latest run --key auth/login    # keys under a prefix (nesting joined with /)
-npx lingo.dev@latest run --frozen            # CI: fail if translations are out of date
-npx lingo.dev@latest run --force             # retranslate everything (overwrites manual edits)
+npx lingo.dev@0.138.8 init                    # create i18n.json
+npx lingo.dev@0.138.8 run                     # translate new and changed strings
+npx lingo.dev@0.138.8 run --target-locale es  # Spanish only
+npx lingo.dev@0.138.8 run --key auth/login    # keys under a prefix (nesting joined with /)
+npx lingo.dev@0.138.8 run --frozen            # CI: fail if translations are out of date
+npx lingo.dev@0.138.8 run --force             # retranslate everything (overwrites manual edits)
 ```
+
+The version above is the one these docs were checked against; pin whatever version the project uses rather than `@latest`.
 
 Commit `i18n.lock`. It stores a checksum of every source string, which is how `run` knows which strings changed. Don't delete it: a fresh lockfile records the current source as already translated, so edits made since the last run are never picked up.
 
