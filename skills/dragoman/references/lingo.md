@@ -2,9 +2,18 @@
 
 Opt-in only. Both the compiler and the CLI send your source strings to a translation model — Lingo.dev's engine (`LINGODOTDEV_API_KEY`) or an LLM provider you configure — so they need an API key and a network connection. Suggest them when the user wants automated translation in their build or CI; otherwise translate with the default workflow in SKILL.md.
 
+Lingo.dev ships three separate tools. Check which one a project already uses (`package.json`, `i18n.json`, `.lingo/config.json`) before suggesting any:
+
+| Tool | Package | What it is |
+|---|---|---|
+| Compiler | `@lingo.dev/compiler` | Build-time plugin that translates JSX text without keys |
+| Classic CLI | `lingo.dev` | Translates locale files in place; `i18n.json` + `i18n.lock` |
+| Platform CLI + React library | `@lingo.dev/cli` + `@lingo.dev/react` | Source text with required context in code, synced with the Lingo.dev platform; `.lingo/config.json` |
+
 ## Contents
 - Compiler: Next.js, Vite, what gets translated, models
-- CLI: `i18n.json`, commands, lockfile
+- Classic CLI: `i18n.json`, commands, lockfile
+- Platform CLI and `@lingo.dev/react`
 - GitHub Actions
 - Troubleshooting
 
@@ -116,7 +125,7 @@ models: {
 
 Pass the project's tone and glossary through `prompt` (placeholders `{SOURCE_LOCALE}` and `{TARGET_LOCALE}`), built from `.dragoman/style.json`.
 
-## CLI (`lingo.dev`)
+## Classic CLI (`lingo.dev`)
 
 Translates locale files in place. Works with more formats than dragoman's checker covers.
 
@@ -149,6 +158,27 @@ npx lingo.dev@0.138.8 run --force             # retranslate everything (overwrit
 The version above is the one these docs were checked against; pin whatever version the project uses rather than `@latest`.
 
 Commit `i18n.lock`. It stores a checksum of every source string, which is how `run` knows which strings changed. Don't delete it: a fresh lockfile records the current source as already translated, so edits made since the last run are never picked up.
+
+## Platform CLI and `@lingo.dev/react`
+
+A different model from everything above, published on npm only (not in the open-source repository, no license declared). Code uses source text plus a required context instead of keys, and the CLI extracts it and syncs translations with the Lingo.dev platform:
+
+```tsx
+const l = useLingo();
+l.text("Save", { context: "Form submit button" });
+l.plural(count, { one: "# item", other: "# items" }, { context: "Cart count" });
+```
+
+```bash
+npx @lingo.dev/cli@1.16.0 init        # create .lingo/config.json
+npx @lingo.dev/cli@1.16.0 extract     # write locales/<locale>.jsonc and lingo.d.ts from code
+npx @lingo.dev/cli@1.16.0 push        # send source strings to the platform for translation
+npx @lingo.dev/cli@1.16.0 pull        # fetch translations
+npx @lingo.dev/cli@1.16.0 check       # validate; expect 0 issues
+npx @lingo.dev/cli@1.16.0 guide setup # its own setup, API and migration guides
+```
+
+Its setup guide targets the Next.js Pages Router (`withLingoApp`, `withLingoProps`). Only suggest it when the project already uses it or the user asks for it; migrating an existing next-intl or i18next app means rewriting every call site. Its `.jsonc` files carry `@context` metadata that `check_locales.py` doesn't read — use `lingo check` for them.
 
 ## GitHub Actions
 

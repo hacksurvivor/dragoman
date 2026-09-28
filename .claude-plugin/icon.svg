@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Dragoman</title>
+  <rect width="256" height="256" rx="56" fill="#15171C"/>
+  <path d="M106 62C82 62 84 74 84 92V110C84 122 74 128 64 128C74 128 84 134 84 146V164C84 184 82 194 106 194" fill="none" stroke="#F3EEE4" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M150 62C174 62 172 74 172 92V110C172 122 182 128 192 128C182 128 172 134 172 146V164C172 184 174 194 150 194" fill="none" stroke="#F3EEE4" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="128" cy="128" r="20" fill="#D8452B"/>
+</svg>
