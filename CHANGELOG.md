@@ -30,7 +30,7 @@ First release as **dragoman** (previously `i18n-localizer`).
 - `translation_state.py`: incremental translation (`todo`), draft/reviewed tracking (`mark`, `approve`) and a guard that fails when a reviewed translation is edited (`status`).
 - `xcstrings_audit.py` and `xcstrings_add.py` as command-line tools.
 - `.dragoman/style.json`: formality, regional variants, do-not-translate terms and glossary, asked once and reused.
-- Unit tests with fixtures, GitHub Actions CI (Python 3.9 and 3.13, plugin validation), and an eval suite (`claude plugin eval`).
+- Unit tests with fixtures, GitHub Actions CI (Python 3.9 and 3.13, plugin validation), and an evaluation suite that compares results with and without the plugin.
 
 ### Changed
 - `SKILL.md` cut from ~2,000 lines to a ~130-line workflow; details moved to `references/`, loaded only when needed.
