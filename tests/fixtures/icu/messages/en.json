@@ -1,0 +1,11 @@
+{
+  "nav": { "home": "Home", "settings": "Settings" },
+  "cart": {
+    "items": "{count, plural, one {# item} other {# items}}",
+    "total": "Total: {amount, number, ::currency/USD}",
+    "greeting": "Hi {name}, welcome back to Acme!"
+  },
+  "terms": "I agree to the <link>terms of service</link>",
+  "invite": "{gender, select, female {She invited you} male {He invited you} other {They invited you}}",
+  "hint": "Press '{' to open the menu"
+}

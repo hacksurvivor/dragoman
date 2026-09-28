@@ -1,0 +1,8 @@
+{
+  "welcome": "ようこそ、{{name}}さん!",
+  "item_one": "{{count}}個",
+  "item_other": "{{count}}個",
+  "agree": "<1>こちら</1>をクリックして同意してください。<br/>ありがとう!",
+  "nested": "保存しました。$t(common.undo)",
+  "undo": "元に戻す"
+}

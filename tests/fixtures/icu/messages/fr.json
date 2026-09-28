@@ -1,0 +1,10 @@
+{
+  "nav": { "home": "Accueil", "settings": "Paramètres" },
+  "cart": {
+    "items": "{count, plural, one {# article} other {# articles}}",
+    "total": "Total : {amount, number, ::currency/USD}",
+    "greeting": "Bonjour {name}, bon retour sur l'application Acme !"
+  },
+  "terms": "J'accepte les <link>conditions d'utilisation</link>",
+  "invite": "{gender, select, female {Elle vous a invité} male {Il vous a invité} other {On vous a invité}}"
+}

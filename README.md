@@ -1,94 +1,100 @@
-<div align="center">
+# Dragoman
 
-# 🌍 i18n-localizer
+**Localization for Claude Code that checks its own work.**
 
-**AI-powered internationalization and localization for web, mobile, and native Apple apps.**
+A dragoman was the interpreter and guide at the Ottoman court: the person who made sure what was said in one language arrived intact in another. This plugin does that job for apps. It sets up i18n, moves hardcoded strings into message files, translates them, and then verifies every translation mechanically instead of trusting the model.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-blueviolet)](https://docs.anthropic.com/en/docs/claude-code)
-[![Languages](https://img.shields.io/badge/Languages-47+-green.svg)](#what-it-does)
-
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that enables Claude to scan your codebase for translatable strings, set up i18n infrastructure, generate high-quality localized translations, handle SEO metadata, and maintain translation files — all without external API calls.
-
-</div>
-
----
-
-## ⚡ Quick Start
-
-```bash
-git clone https://github.com/hacksurvivor/i18n-localizer.git ~/.claude/skills/i18n-localizer
+```text
+check_locales.py "messages/[locale].json"
+  error  ru  cart.items: {count, plural} missing 'few' form (ru needs one, few, many, other)
+  error  ru  cart.total: placeholder {amount} missing
+  error  ru  terms: tags differ: source {'link': 1} vs {}
+  warn   ja  cart.greeting: identical to source — untranslated?
 ```
 
-Then open any project and ask Claude to localize it — the skill auto-detects your project type and gets to work.
+## Install
 
----
+In Claude Code:
 
-## Problem
+```
+/plugin marketplace add hacksurvivor/dragoman
+/plugin install dragoman@dragoman
+```
 
-Localization projects break down when teams have mixed stacks, inconsistent translation workflows, and no single rollout path.
+Or from a terminal: `claude plugin marketplace add hacksurvivor/dragoman`, then `claude plugin install dragoman@dragoman`.
 
-## Architecture
+Without the plugin system, copy the skill folder into your skills directory:
 
-- Skill-driven workflow that scans codebases, detects framework/i18n context, and routes to the right implementation strategy.
-- Supports web and mobile surfaces (Next.js, React, React Native/Expo, SwiftUI) with format-aware translation handling.
-- Integrates routing, metadata, and locale file operations in one delivery loop.
+```bash
+git clone https://github.com/hacksurvivor/dragoman.git
+cp -R dragoman/skills/dragoman ~/.claude/skills/
+```
 
-## Outcomes
+Then ask Claude to localize your app: *"Add German and Japanese"*, *"I changed the English copy, update the translations"*, *"Why is this SwiftUI screen still in English?"*
 
-- Faster localization rollout across heterogeneous codebases.
-- Standardized i18n implementation patterns instead of one-off scripts.
-- Cleaner handoff from technical setup to content translation and QA.
+## How it works
 
+1. **Detects** your stack and any existing i18n library (it keeps what you have).
+2. **Settles your style once**: target languages and regional variants, formality (du/Sie, tu/vous …), terms that stay untranslated, required terminology. Saved to `.dragoman/style.json` and reused on every run.
+3. **Sets up i18n** if there is none, using the standard library for your stack.
+4. **Extracts hardcoded strings** into message files, avoiding concatenation, split sentences and English-only plural logic.
+5. **Translates only what's new or changed.** `.dragoman/state.json` records a hash of each source string and whether a person reviewed the translation, so re-runs never touch reviewed text and edited source strings get flagged.
+6. **Verifies** with bundled scripts, fixes what they find, and re-runs until clean.
+7. **Reports** what's done, what's a draft, and how to approve drafts after human review.
 
-## 🧩 Supported Frameworks
+## What's supported
 
-| Framework | Details |
+| | Setup and code guidance | Translation + automatic checks |
+|---|---|---|
+| Next.js (next-intl) | ✓ incl. routing, hreflang, sitemaps, OG images | ✓ ICU messages |
+| React: Vite, React Router, CRA (react-i18next) | ✓ | ✓ i18next messages and plural keys |
+| React Native / Expo | ✓ | ✓ |
+| SwiftUI / UIKit (String Catalogs) | ✓ incl. the pitfalls that leave text in English | ✓ `.xcstrings` |
+| Other frameworks with JSON, YAML or ARB files (Vue, Flutter, …) | — | ✓ |
+| PO, XLIFF, Android XML, CSV, … | — | via the optional [Lingo.dev](https://lingo.dev) CLI |
+
+The checker understands ICU MessageFormat (next-intl, FormatJS, Flutter ARB) and i18next syntax, and knows the CLDR plural categories for 128 languages.
+
+## The scripts
+
+Python 3.9+ standard library only (YAML needs PyYAML). They're in `skills/dragoman/scripts/` and work on their own, e.g. in CI:
+
+| Script | What it does |
 |---|---|
-| **Next.js** | App Router & Pages Router |
-| **Vite + React** | Fast builds with React |
-| **React Router** | v7 |
-| **React Native & Expo** | Mobile apps |
-| **SwiftUI** | String Catalogs / `xcstrings` |
-| **Plain React** | Any React project |
+| `check_locales.py "<pattern>"` | Missing/empty keys, placeholders and tags that differ from the source, ICU syntax errors, missing plural forms, orphan keys, untranslated copies, style-file misses. Exit 1 on errors; `--json` for tooling |
+| `translation_state.py todo\|mark\|approve\|status` | Incremental translation and review tracking. `status` exits 1 if a reviewed translation was edited without approval |
+| `xcstrings_audit.py --locale <code>` | Keys used in Swift code but missing from every catalog, untranslated keys, needs-review entries |
+| `xcstrings_add.py <catalog> --locale <code> --translations <file>` | Adds translations as Needs Review, never overwrites reviewed ones, writes Xcode's exact file format |
 
-## 📦 Supported Formats
+`<pattern>` names your locale files: `messages/[locale].json`, `public/locales/[locale]/*.json`, `lib/l10n/app_[locale].arb`.
 
-`JSON` · `YAML` · `CSV` · `PO` · `Markdown` · `xcstrings` · `XLIFF`
+## What it does on your machine
 
----
+- Runs the Python scripts above with your permission. They read your locale files and write only `.dragoman/` and the files you're translating.
+- Translations are written by Claude in your session. Nothing is sent anywhere else unless you choose the optional Lingo.dev compiler or CLI, which send source strings to Lingo.dev or the model provider you configure.
+- May suggest installing i18n libraries (`next-intl`, `react-i18next`, …) for projects that have none.
 
-## ✨ What It Does
+## Development
 
-- 🔍 **Auto-detects** your project type and existing i18n setup
-- 📝 **Extracts** hardcoded strings into locale files
-- 🤖 **Generates** AI-powered translations for **47+ languages**
-- 🔗 **Sets up i18n routing** (`/en/about`, `/es/about`, etc.)
-- 🏷️ **Generates** `hreflang` tags and localized SEO metadata
-- 🌐 **Handles** pluralization, RTL layout, and date/number formatting
-- 🍎 **Supports** Apple String Catalogs for SwiftUI / iOS / macOS apps
+```bash
+python3 -m unittest discover tests -v        # script tests (also run in CI)
+claude plugin validate . --strict            # manifests
+claude plugin validate skills --strict       # skill
+```
 
----
+The `evals/` suite runs real Claude sessions against small fixture projects (translate ICU messages, update without touching reviewed strings, fix a SwiftUI `String` parameter, ask about formality first). It costs money; each run prints a list-price estimate:
 
-## 🧠 Strategies
+```bash
+claude plugin eval . --scaffold --trust-plugin --no-publish \
+  --allow-tools Write Edit "Bash(python3 *)" --max-cost-usd 10
+```
 
-The skill automatically selects the best localization approach for your project:
+The eval harness refuses to run from a path containing a directory name with leading or trailing spaces.
 
-| Strategy | When to Use |
-|---|---|
-| **Compiler Approach** ([Lingo.dev](https://github.com/lingodotdev/lingo.dev)) | Zero-runtime i18n, compile-time string replacement |
-| **next-intl** | Next.js App Router with server components |
-| **react-i18next** | Vite, React Router, or plain React |
-| **React Native** | React Native / Expo with i18next |
-| **Apple Native** | SwiftUI String Catalogs (`xcstrings`) |
-| **Manual Translation** | Direct locale file management |
+## Credits
 
----
+Lingo.dev guidance is based on the [lingo.dev](https://github.com/lingodotdev/lingo.dev) docs and packages (Apache-2.0). Plural data comes from the Unicode CLDR via ICU.
 
-## 🙏 Credits
+## License
 
-Built on knowledge from [Lingo.dev](https://github.com/lingodotdev/lingo.dev) (Apache-2.0), Apple Developer documentation, and community best practices.
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)

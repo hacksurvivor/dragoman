@@ -1,0 +1,45 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ has %lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ has %2$lld items"
+          }
+        }
+      }
+    },
+    "%lld items" : {
+      "comment" : "Cart badge"
+    },
+    "Coming Up" : {
+
+    },
+    "Hello %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Привет, %@"
+          }
+        }
+      }
+    },
+    "Ratio %lf" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доля %lf"
+          }
+        }
+      }
+    },
+    "Debug" : {
+      "shouldTranslate" : false
+    }
+  },
+  "version" : "1.0"
+}

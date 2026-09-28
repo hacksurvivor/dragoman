@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: swiftui-string-param
+description: Fix SwiftUI section headers that stay in English because a helper takes String
+context:
+  scaffold_script: scaffold.sh

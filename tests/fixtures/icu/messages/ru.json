@@ -1,0 +1,12 @@
+{
+  "nav": { "home": "Главная", "settings": "" },
+  "cart": {
+    "items": "{count, plural, one {# товар} other {# товара}}",
+    "total": "Итого: {sum, number, ::currency/USD}",
+    "greeting": "Привет, {name}, с возвращением в Акме!"
+  },
+  "terms": "Я принимаю условия использования",
+  "invite": "{gender, select, female {Она пригласила вас} other {Вас пригласили}}",
+  "hint": "Нажмите '{', чтобы открыть меню",
+  "legacy": "Старый ключ"
+}

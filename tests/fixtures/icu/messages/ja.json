@@ -1,0 +1,11 @@
+{
+  "nav": { "home": "ホーム", "settings": "設定" },
+  "cart": {
+    "items": "{count, plural, one {#個の商品} other {#個の商品}",
+    "total": "合計: {amount, number, ::currency/USD}",
+    "greeting": "Hi {name}, welcome back to Acme!"
+  },
+  "terms": "<link>利用規約</link>に同意します",
+  "invite": "{gender, select, other {招待されました}}",
+  "hint": "メニューを開くには '{' を押してください"
+}
