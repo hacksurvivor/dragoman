@@ -2,6 +2,8 @@
 
 **Localization for Claude that checks its own work.**
 
+![Claude Code with Dragoman adds German and Russian to a small next-intl app, then the checker catches a hand-edited Russian plural that lost its 'few' form](docs/demo.gif)
+
 A dragoman was the interpreter and guide at the Ottoman court: the person who made sure what was said in one language arrived intact in another. This plugin does that job for apps. It sets up i18n, moves hardcoded strings into message files, translates them, and then verifies every translation mechanically instead of trusting the model.
 
 ```text
@@ -14,9 +16,11 @@ check_locales.py "messages/[locale].json"
 
 ## Install
 
-Dragoman is a Claude plugin. It works in chat on claude.ai, the desktop and mobile apps, Cowork, and Claude Code, and a plugin you add to your account follows you to all of them.
+Dragoman is a Claude plugin, listed in the Claude directory. It works in chat on claude.ai, the desktop and mobile apps, Cowork, and Claude Code, and a plugin you add to your account follows you to all of them.
 
-**claude.ai, desktop and mobile apps, Cowork:** open **Customize → Plugins**, choose **Add → Add marketplace**, enter `hacksurvivor/dragoman`, select **Sync**, then **Add** next to Dragoman.
+**From the directory:** in Claude, open **Directory**, search for **Dragoman**, and add it.
+
+**From this repo (claude.ai, desktop and mobile apps, Cowork):** open **Customize → Plugins**, choose **Add → Add marketplace**, enter `hacksurvivor/dragoman`, select **Sync**, then **Add** next to Dragoman.
 
 **Claude Code:**
 
