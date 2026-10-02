@@ -14,9 +14,11 @@ check_locales.py "messages/[locale].json"
 
 ## Install
 
-Dragoman is a Claude plugin. It works in chat on claude.ai, the desktop and mobile apps, Cowork, and Claude Code, and a plugin you add to your account follows you to all of them.
+Dragoman is a Claude plugin, listed in the Claude directory. It works in chat on claude.ai, the desktop and mobile apps, Cowork, and Claude Code, and a plugin you add to your account follows you to all of them.
 
-**claude.ai, desktop and mobile apps, Cowork:** open **Customize → Plugins**, choose **Add → Add marketplace**, enter `hacksurvivor/dragoman`, select **Sync**, then **Add** next to Dragoman.
+**From the directory:** in Claude, open **Directory**, search for **Dragoman**, and add it.
+
+**From this repo (claude.ai, desktop and mobile apps, Cowork):** open **Customize → Plugins**, choose **Add → Add marketplace**, enter `hacksurvivor/dragoman`, select **Sync**, then **Add** next to Dragoman.
 
 **Claude Code:**
 

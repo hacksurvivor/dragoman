@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- README: Dragoman is listed in the Claude directory; install steps now start there.
+
 ## 1.0.3 — 2026-09-28
 
 ### Added
