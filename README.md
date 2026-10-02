@@ -2,6 +2,8 @@
 
 **Localization for Claude that checks its own work.**
 
+![Claude Code with Dragoman adds German and Russian to a small next-intl app, then the checker catches a hand-edited Russian plural that lost its 'few' form](docs/demo.gif)
+
 A dragoman was the interpreter and guide at the Ottoman court: the person who made sure what was said in one language arrived intact in another. This plugin does that job for apps. It sets up i18n, moves hardcoded strings into message files, translates them, and then verifies every translation mechanically instead of trusting the model.
 
 ```text
